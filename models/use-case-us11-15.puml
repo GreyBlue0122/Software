@@ -1,0 +1,106 @@
+@startuml use-case-us11-15
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title 「顺手带」校园外卖楼内代取平台 — 用例图（US-11 ~ US-15：申诉受理与接单履约）
+
+' =========================================================
+' 参与者定义（区分主参与者 / 次参与者）
+' =========================================================
+' 主参与者（左侧）：主动发起申诉或接单履约的系统用户
+actor "委托学生\n(SH-01)" as Requester
+actor "代取学生\n(SH-02)" as Carrier
+
+' 次参与者（右侧）：被系统调用以协助完成用例的外部集成系统
+actor "平台管理员\n(SH-03)" as Admin <<operator>>
+actor "消息推送服务" as PushService <<external system>>
+
+' =========================================================
+' 系统边界
+' =========================================================
+rectangle "「顺手带」楼内代取平台（申诉与接单履约模块）" {
+  usecase "UC-14\n提交申诉\n[US-11 / FR-14 / #12]" as UC14
+  usecase "填写申诉原因\n与说明（没送到门口 / 送错餐）" as AppealReason
+  usecase "校验申诉窗口\n（已送达且未确认）" as AppealWindow
+
+  usecase "UC-05\n浏览本楼待接列表\n[US-12 / FR-05 / #13]" as UC05
+  usecase "查看接单预览\n（报酬 / 楼层 / 剩余时间）" as Preview
+  usecase "隐藏取餐凭证\n与完整寝室号" as HidePrivateFields
+
+  usecase "UC-06\n确认接单\n[US-13 / FR-06 / #14]" as UC06
+  usecase "校验接单资格\n（本楼 / 待接单 / 未过时限 / 非本人发布）" as AcceptCarrier
+
+  usecase "UC-07\n查看任务详情\n[US-14 / FR-07 / #15]" as UC07
+  usecase "查看取餐点与取餐凭证\n及完整寝室号" as PickupDetails
+
+  usecase "UC-08\n标记已取餐\n[US-15 / FR-08 / #16]" as UC08
+  usecase "记录状态变更\n（操作人 / 时间戳）" as RecordStatus
+}
+
+' =========================================================
+' 主参与者与用例关联
+' =========================================================
+Requester -- UC14
+Carrier -- UC05
+Carrier -- UC06
+Carrier -- UC07
+Carrier -- UC08
+Admin -- UC14
+
+' =========================================================
+' 用例间关系
+' =========================================================
+UC14 ..> AppealReason : <<include>>
+UC14 ..> AppealWindow : <<include>>
+
+UC05 ..> Preview : <<include>>
+UC05 ..> HidePrivateFields : <<include>>
+
+UC06 ..> AcceptCarrier : <<include>>
+UC06 ..> UC05 : <<extend>>
+UC07 ..> PickupDetails : <<include>>
+UC08 ..> RecordStatus : <<include>>
+
+' =========================================================
+' 次参与者关联
+' =========================================================
+UC14 -- Admin
+UC08 -- PushService
+UC06 -- PushService
+
+' =========================================================
+' 关键前置条件与业务约束注释
+' =========================================================
+note top of UC14
+  前置条件：订单状态为「已送达」且委托学生尚未确认收货
+  异常：已确认收货或状态不是「已送达」时拒绝申诉
+  提交后状态变为「申诉中」，悬赏继续冻结并进入管理员裁定队列
+end note
+
+note bottom of UC05
+  接单预览只显示报酬、目标楼层和剩余时间
+  取餐凭证与完整寝室号在接单前对代取学生隐藏
+end note
+
+note bottom of UC06
+  接单资格校验：
+  1. 已绑定本楼
+  2. 需求仍为「待接单」
+  3. 未超过接单时限
+  4. 接单人不是需求发布人
+  并发接单按先到先得，后到者不得重复接单
+end note
+
+note bottom of UC07
+  完整取餐点、取餐凭证和完整寝室号仅对接单人可见
+  非接单人仍按接单前字段分级规则查看
+end note
+
+note bottom of UC08
+  前置条件：代取学生是接单人且订单状态为「已接单」
+  成功后状态变为「已取餐」
+  系统记录操作人与时间戳，并通知委托学生餐已离开取餐点
+end note
+
+@enduml
