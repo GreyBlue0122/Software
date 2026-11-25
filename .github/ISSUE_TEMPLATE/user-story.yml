@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         请按模板完整填写用户故事与验收标准，并在右侧栏指定 **Assignees（负责人）**。
-        参考文档：`doc/README.md` 与 `doc/用户故事清单.pdf`。
+        参考文档：`doc/设计基线.md`、`doc/用户故事清单.pdf` 与 `doc/SRS.docx`。
   - type: input
     id: story_id
     attributes:
@@ -72,7 +72,7 @@ body:
       label: 关联调研证据链接
       description: 关联痛点编号（如 P-01 / P-02 / P-03）及仓库内的调研纪要/证据链接
       placeholder: |
-        - 关联痛点：P-01（https://github.com/GreyBlue0122/Software/blob/main/doc/README.md#61-%E4%B8%BB%E8%A6%81%E7%97%9B%E7%82%B9）
+        - 关联痛点：P-01（https://github.com/GreyBlue0122/Software/blob/main/doc/%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%BA%BF.md#61-%E4%B8%BB%E8%A6%81%E7%97%9B%E7%82%B9）
         - 调研证据链接：
     validations:
       required: true
