@@ -1,67 +1,93 @@
 @startuml use-case-us06-10
+' =========================================================
+' 布局原则：严格三列（参与者 → 主用例 → 细化用例/次参与者），
+' 所有连线只连接相邻两列，保证线条水平或短斜线、不交叉。
+' 说明统一放入不带连线的 legend，避免 note 连线横穿画面。
+' =========================================================
 left to right direction
 skinparam packageStyle rectangle
 skinparam shadowing false
+skinparam linetype polyline
+skinparam nodesep 30
+skinparam ranksep 90
+skinparam defaultFontName "Microsoft YaHei"
+skinparam usecase {
+  BackgroundColor #FBFCFE
+  BorderColor #566B80
+  FontSize 13
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #566B80
+  FontSize 13
+}
+skinparam rectangle {
+  BorderColor #566B80
+  FontSize 14
+}
 
 title 「顺手带」校园外卖楼内代取平台 — 用例图（US-06 ~ US-10：委托方订单跟踪、撤回、超时与结算）
 
 ' =========================================================
-' 参与者定义（区分主参与者 / 定时触发者 / 次参与者）
+' 参与者：主参与者在左，次参与者在右
 ' =========================================================
 actor "委托学生\n(SH-01)" as Requester
 actor "系统定时调度\n(超时扫描)" as SystemTimer
-
 actor "支付与资金托管服务" as PaymentService <<external system>>
 actor "微信订阅消息" as WeChatNotify <<external system>>
 
 ' =========================================================
-' 系统边界（覆盖委托方订单跟踪、撤回、超时关闭与确认结算模块）
+' 系统边界：第一列主用例，第二列细化用例
 ' =========================================================
 rectangle "「顺手带」楼内代取平台（委托订单跟踪、撤回与结算模块）" {
-  usecase "UC-10\n撤回待接需求\n[US-07 / FR-10 / #8]" as UC10
-  usecase "UC-12\n确认收货并结算\n[US-10 / FR-12 / #11]" as UC12
-  usecase "UC-02\n按楼栋隔离查看订单状态\n[US-09 / FR-02 / #10]" as UC02
-  usecase "UC-11\n超时关闭并退回悬赏\n[US-06 / FR-11 / NFR-02 / #7]" as UC11
-  usecase "UC-16\n接收状态通知\n[US-08 / FR-16 / NFR-03 / #9]" as UC16
+  usecase "UC-11 超时关闭并退回悬赏\n[US-06 / FR-11 / NFR-02 / #7]" as UC11
+  usecase "UC-10 撤回待接需求\n[US-07 / FR-10 / #8]" as UC10
+  usecase "UC-16 接收状态通知\n[US-08 / FR-16 / NFR-03 / #9]" as UC16
+  usecase "UC-17 查看我的订单\n与状态跟踪\n[US-09 / FR-17 / #10]" as UC17
+  usecase "UC-12 确认收货并结算\n[US-10 / FR-12 / #11]" as UC12
+
+  usecase "扫描到期「待接单」\n原路退回悬赏" as UC11_1
+  usecase "校验撤回窗口\n并原路退回悬赏" as UC10_1
+  usecase "订阅消息下发\n（失败降级站内信）" as UC16_1
+  usecase "按状态分组并展示\n最近一次变更时间" as UC17_1
+  usecase "解冻并计入已到账\n（0 抽成 / 幂等）" as UC12_1
 }
 
 ' =========================================================
-' 参与者与用例关联（无向实线）
+' 主参与者与主用例（实线，左 → 右）
 ' =========================================================
-Requester -- UC10
-Requester -- UC12
-Requester -- UC02
-Requester -- UC16
 SystemTimer -- UC11
+Requester -- UC10
+Requester -- UC16
+Requester -- UC17
+Requester -- UC12
 
 ' =========================================================
-' 用例间关系（<<include>> 虚线箭头）
+' 主用例与细化用例（include 虚线，主用例 → 细化用例）
 ' =========================================================
-UC11 ..> UC16 : <<include>>
+UC11 ..> UC11_1 : <<include>>
+UC10 ..> UC10_1 : <<include>>
+UC16 ..> UC16_1 : <<include>>
+UC17 ..> UC17_1 : <<include>>
+UC12 ..> UC12_1 : <<include>>
 
 ' =========================================================
-' 次参与者与用例关联（右侧外部系统）
+' 细化用例与次参与者（实线，细化用例 → 次参与者）
 ' =========================================================
-UC10 -- PaymentService
-UC12 -- PaymentService
-UC11 -- PaymentService
-UC16 -- WeChatNotify
+UC11_1 -- PaymentService
+UC10_1 -- PaymentService
+UC12_1 -- PaymentService
+UC16_1 -- WeChatNotify
 
 ' =========================================================
-' 关键前置条件与业务约束注释
+' 业务约束说明（独立图例，不连线）
 ' =========================================================
-note bottom of UC10
-  跟踪、撤回与结算约束（FR-02 / FR-10 / FR-12）：
-  1. 仅限本楼订单查看，实时展示状态及最近变更时间（UC-02）
-  2. 仅「待接单」可撤回并原路退回悬赏，已接单拒绝撤回（UC-10）
-  3. 仅「已送达」未确认时可结算（0 抽成、幂等）；异常可走 UC-14 申诉（UC-12）
-end note
-
-note top of UC16
-  超时兜底与通知策略（FR-11 / FR-16）：
-  1. 定时扫描到期「待接单」→ 转「已关闭」、移除列表并原路退回悬赏
-  2. 超时提示“暂无人接单，请下楼自取”与接单通知均 ≤ 1 分钟送达
-  3. 订阅消息未授权或次数用尽时降级为站内信 / 小程序红点
-end note
+legend bottom
+  关键约束
+  1. 仅本楼订单可见，状态与最近变更时间实时一致（UC-17）
+  2. 仅「待接单」可撤回并原路退回，已接单拒绝撤回（UC-10）
+  3. 仅「已送达」未确认时可结算，金额 = 发布金额，幂等（UC-12）
+  4. 时限到期扫描「待接单」→「已关闭」并退回，提示 ≤ 1 分钟（UC-11 / UC-16）
+endlegend
 
 @enduml

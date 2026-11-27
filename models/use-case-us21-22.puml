@@ -1,77 +1,92 @@
 @startuml use-case-us21-22
+' =========================================================
+' 布局原则：严格三列（参与者 → 主用例 → 细化用例/次参与者），
+' 所有连线只连接相邻两列，保证线条水平或短斜线、不交叉。
+' 说明统一放入不带连线的 legend，避免 note 连线横穿画面。
+' =========================================================
 left to right direction
 skinparam packageStyle rectangle
 skinparam shadowing false
+skinparam linetype polyline
+skinparam nodesep 30
+skinparam ranksep 90
+skinparam defaultFontName "Microsoft YaHei"
+skinparam usecase {
+  BackgroundColor #FBFCFE
+  BorderColor #566B80
+  FontSize 13
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #566B80
+  FontSize 13
+}
+skinparam rectangle {
+  BorderColor #566B80
+  FontSize 14
+}
 
 title 「顺手带」校园外卖楼内代取平台 — 用例图（US-21 ~ US-22：楼栋白名单治理与申诉裁定）
 
 ' =========================================================
-' 参与者定义（区分主参与者 / 次参与者）
+' 参与者：主参与者在左，次参与者在右
 ' =========================================================
-' 主参与者（左侧）：执行楼栋治理与申诉裁定的平台运营者
 actor "平台管理员\n(SH-03)" as Admin
-
-' 次参与者（右侧）：被系统调用以协助完成用例的外部集成系统 / 其他参与者
 actor "委托学生\n(SH-01)" as Requester
 actor "支付与资金托管服务" as PaymentService <<external system>>
 actor "微信订阅消息" as WeChatNotify <<external system>>
 
 ' =========================================================
-' 系统边界（覆盖楼栋白名单治理与申诉裁定模块）
+' 系统边界：第一列主用例，第二列细化用例
 ' =========================================================
-rectangle "「顺手带」楼内代取平台（楼栋治理与申诉裁定模块）" {
-  usecase "UC-03\n维护楼栋白名单\n[US-21 / FR-03 / #22]" as UC03
-  usecase "新增 / 编辑允许开展代取的楼栋" as EditBuilding
-  usecase "停用楼栋\n（禁止新发布与新接单）" as DisableBuilding
-  usecase "校验学籍楼栋是否在允许名单内" as CheckWhitelist
+rectangle "「顺手带」楼内代取平台（楼栋白名单治理与申诉裁定模块）" {
+  usecase "UC-03 维护楼栋白名单\n[US-21 / FR-03 / #22]" as UC03
+  usecase "UC-15 裁定申诉\n[US-22 / FR-15 / #23]" as UC15
 
-  usecase "UC-15\n裁定申诉\n[US-22 / FR-15 / #23]" as UC15
-  usecase "查看状态记录\n（接单 / 取餐 / 送达时间与申诉原因）" as ReviewRecord
-  usecase "裁定委托学生有理\n（悬赏原路退回 + 惩罚机制）" as RuleForRequester
-  usecase "裁定报酬付给代取学生\n（解冻划入其账户）" as RuleForCarrier
+  usecase "新增 / 编辑允许开展\n代取的楼栋" as UC03_1
+  usecase "停用楼栋\n（禁止新发布与新接单）" as UC03_2
+  usecase "校验学籍楼栋\n是否在允许名单内" as UC03_3
+  usecase "查看状态记录\n（接单 / 取餐 / 送达时间）" as UC15_1
+  usecase "裁定委托学生有理\n（原路退回 + 惩罚机制）" as UC15_2
+  usecase "裁定报酬付代取学生\n（解冻划入其账户）" as UC15_3
+  usecase "通知双方裁定结果" as UC15_4
 }
 
 ' =========================================================
-' 主参与者与用例关联
+' 主参与者与主用例（实线，左 → 右）
 ' =========================================================
 Admin -- UC03
 Admin -- UC15
 
 ' =========================================================
-' 用例间关系（<<include>> / <<extend>>）
+' 主用例与细化用例（include / extend 虚线，主用例 → 细化用例）
 ' =========================================================
-UC03 ..> EditBuilding : <<include>>
-UC03 ..> DisableBuilding : <<include>>
-UC03 ..> CheckWhitelist : <<include>>
-
-UC15 ..> ReviewRecord : <<include>>
-UC15 ..> RuleForRequester : <<extend>>
-UC15 ..> RuleForCarrier : <<extend>>
-
-' =========================================================
-' 次参与者与用例关联（右侧外部系统 / 受影响方）
-' =========================================================
-UC03 -- Requester
-UC15 -- Requester
-UC15 -- PaymentService
-UC15 -- WeChatNotify
+UC03 ..> UC03_1 : <<include>>
+UC03 ..> UC03_2 : <<include>>
+UC03 ..> UC03_3 : <<include>>
+UC15 ..> UC15_1 : <<include>>
+UC15 ..> UC15_2 : <<extend>>
+UC15 ..> UC15_3 : <<extend>>
+UC15 ..> UC15_4 : <<include>>
 
 ' =========================================================
-' 关键前置条件与业务约束注释
+' 细化用例与次参与者（实线，细化用例 → 次参与者）
 ' =========================================================
-note top of UC03
-  业务约束（US-21 / BR-01）：
-  1. 仅名单内楼栋可开展代取，绑定不在名单中的楼栋（如“校外商业街”）被拒绝
-  2. 停用某楼后，该楼学生不能新发布、也不能新接单；进行中的订单仍可履约与结算
-  3. 名单变更即时生效并留痕
-end note
+UC03_3 -- Requester
+UC15_2 -- PaymentService
+UC15_3 -- PaymentService
+UC15_4 -- WeChatNotify
 
-note bottom of UC15
-  前置条件：订单处于「申诉中」，报酬处于冻结状态
-  裁定依据：接单 / 取餐 / 送达时间、送达照片、申诉原因与双方陈述
-  出口一：委托学生有理 → 解冻并原路退回，代取学生按惩罚机制处理
-  出口二：报酬付代取学生 → 解冻划入其账户，状态变为「已完成」
-  双方均可查看裁定结果；裁定后不允许再次裁定
-end note
+' =========================================================
+' 业务约束说明（独立图例，不连线）
+' =========================================================
+legend bottom
+  关键约束
+  1. 仅名单内楼栋可开展代取，绑定不在名单中的楼栋（如“校外商业街”）被拒绝（UC-03）
+  2. 停用楼栋后不能新发布、新接单，进行中订单仍可履约与结算（UC-03）
+  3. 裁定依据为接单 / 取餐 / 送达时间、送达照片、申诉原因与双方陈述（UC-15）
+  4. 裁定退需求方：解冻原路退回并按惩罚机制处理；裁定付代取方：解冻入账（UC-15）
+  5. 裁定后不允许再次裁定，双方均可查看裁定结果（UC-15）
+endlegend
 
 @enduml
